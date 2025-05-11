@@ -11,38 +11,6 @@ using vii = vector<ii>;
 using vvi = vector<vi>;
 using vvii = vector<vii>;
 
-vi digits(ll mask3, ll n) {
-  vi result;
-
-  for (int i = 0; i < n; ++i) {
-    ll digit = mask3 % 3;
-    mask3 /= 3;
-    result.emplace_back(digit);
-  }
-
-  return vi(result.rbegin(), result.rend());
-}
-
-tuple<ll, ll, ll> split(ll mask3, ll n) {
-  ll mask1 = 0;
-  ll mask2 = 0;
-  ll mask12 = 0;
-  for (auto digit : digits(mask3, n)) {
-    mask1 *= 2;
-    mask2 *= 2;
-    mask12 *= 2;
-
-    if (digit == 1) {
-      mask1 += 1;
-      mask12 += 1;
-    } else if (digit == 2) {
-      mask2 += 1;
-      mask12 += 1;
-    }
-  }
-  return {mask1, mask2, mask12};
-}
-
 int main() {
   ll n, m, k;
   cin >> n >> m >> k;
@@ -74,26 +42,22 @@ int main() {
     return result;
   };
 
-  ll max_mask_3 = 1;
-  for (int i = 0; i < n; ++i) {
-    max_mask_3 *= 3;
-  }
-  for (ll mask3 = 0; mask3 < max_mask_3; ++mask3) {
-    auto [subset1, subset2, set] = split(mask3, n);
-    if (subset1 == 0 || subset2 == 0) {
-      continue;
-    }
-    if (!dp.count(set)) {
-      dp[set] = vi(k, 1e18);
-      dp[set][0] = 0;
-    }
-    if (!dp.count(subset2)) {
-      dp[subset2] = vi(k, 1e18);
-      dp[subset2][0] = 0;
-    }
-    ll cost = partition_cost(subset1, subset2);
-    for (ll l = 1; l < k; ++l) {
-      dp[set][l] = min(dp[set][l], cost + dp[subset2][l - 1]);
+  for (ll mask = 0; mask < (1ll << n); ++mask) {
+    for (ll submask = (mask - 1) & mask; submask;
+         submask = (submask - 1) & mask) {
+      auto submask2 = mask & ~submask;
+      if (!dp.count(mask)) {
+        dp[mask] = vi(k, 1e18);
+        dp[mask][0] = 0;
+      }
+      if (!dp.count(submask2)) {
+        dp[submask2] = vi(k, 1e18);
+        dp[submask2][0] = 0;
+      }
+      ll cost = partition_cost(submask, submask2);
+      for (ll l = 1; l < k; ++l) {
+        dp[mask][l] = min(dp[mask][l], cost + dp[submask2][l - 1]);
+      }
     }
   }
 
