@@ -1,0 +1,24 @@
+=== Running test group 2-cut-small ===
+Comparison(worst_ratio=1.0, average_ratio=1.0, tests_count=7)
+
+=== Running test group 3-cut-small ===
+Comparison(worst_ratio=1.0440422805893659,
+           average_ratio=1.0093991701757379,
+           tests_count=7)
+
+=== Running test group 4-cut-small ===
+Comparison(worst_ratio=1.1929268936394828,
+           average_ratio=1.0327275686205495,
+           tests_count=7)
+
+=== Running benchmark on group 100-vertices ===
+Benchmark(worst_time=0.0060634613037109375, average_time=0.004321575164794922)
+
+=== Running benchmark on group 200-vertices ===
+Benchmark(worst_time=0.03882455825805664, average_time=0.01888829469680786)
+
+=== Running benchmark on group 400-vertices ===
+Benchmark(worst_time=0.2867319583892822, average_time=0.16060457229614258)
+
+=== Running benchmark on group 800-vertices ===
+Benchmark(worst_time=2.747281312942505, average_time=1.2776070475578307)
