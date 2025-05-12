@@ -6,9 +6,11 @@ from dataclasses import dataclass
 import subprocess
 from pathlib import Path
 from pprint import pprint
+import networkx as nx
 
 APPROXIMATE_EXECUTABLE = 'cmake-build-release/approximate_algorithm'
 NAIVE_EXECUTABLE = 'cmake-build-release/naive_algorithm'
+GREEDY_EXECUTABLE = 'cmake-build-release/greedy_algorithm'
 
 TESTS_DIR = Path(__file__).resolve().parent
 
@@ -66,6 +68,13 @@ def generate_random_graph(k: int, n: int, p: float, max_weight: int) -> Test:
     return Test(n, len(edges), k, edges)
 
 
+def generate_powerlaw_cluster_graph(k: int, n: int, p: float, max_weight: int) -> Test:
+    m = min(n // k * 10, n - 1)
+    graph = nx.powerlaw_cluster_graph(n, m, p)
+    edges = [(i, j, random.randint(1, max_weight)) for (i, j) in graph.edges]
+    return Test(n, m, k, edges)
+
+
 def run_test_on(test: str, executable: str) -> RunResult:
     start_time = time.time()
     result = subprocess.run([executable], input=test.encode(), check=True, capture_output=True)
@@ -73,11 +82,11 @@ def run_test_on(test: str, executable: str) -> RunResult:
     return RunResult(output=int(result.stdout), time=run_time)
 
 
-def run_and_compare_algorithms(test: str) -> Comparison:
-    approximate_result = run_test_on(test, APPROXIMATE_EXECUTABLE)
-    naive_result = run_test_on(test, NAIVE_EXECUTABLE)
+def run_and_compare_algorithms(test: str, first: str, second: str) -> Comparison:
+    first_result = run_test_on(test, first)
+    second_result = run_test_on(test, second)
 
-    ratio = approximate_result.output / naive_result.output
+    ratio = first_result.output / second_result.output if second_result.output != 0 else 1.337
     return Comparison(ratio, ratio, 1)
 
 
@@ -89,9 +98,9 @@ def read_test_group(name: str) -> list[str]:
     return tests
 
 
-def run_test_group(name: str) -> Comparison:
+def run_test_group(name: str, first: str, second: str) -> Comparison:
     tests = read_test_group(name)
-    return merge_comparisons(*[run_and_compare_algorithms(test) for test in tests])
+    return merge_comparisons(*[run_and_compare_algorithms(test, first, second) for test in tests])
 
 
 def run_benchmark_on_group(name: str) -> Benchmark:
@@ -141,17 +150,17 @@ def write_test_groups():
 
     write_test_group('100-vertices', [
         generate_random_graph(random.randint(2, 90), 100, random.uniform(0.2, 0.8), 1000)
-        for _ in range(20)
+        for _ in range(400)
     ])
 
     write_test_group('200-vertices', [
         generate_random_graph(random.randint(2, 190), 200, random.uniform(0.2, 0.8), 1000)
-        for _ in range(20)
+        for _ in range(200)
     ])
 
     write_test_group('400-vertices', [
         generate_random_graph(random.randint(2, 390), 400, random.uniform(0.2, 0.8), 1000)
-        for _ in range(20)
+        for _ in range(100)
     ])
 
     write_test_group('800-vertices', [
@@ -159,10 +168,30 @@ def write_test_groups():
         for _ in range(20)
     ])
 
+    write_test_group('powerlaw-cluster-5-200-0.5', [
+        generate_powerlaw_cluster_graph(5, 200, 0.01, 10)
+        for _ in range(20)
+    ])
 
-def run_group_and_print_results(group_name: str):
+    write_test_group('powerlaw-cluster-10-200-0.5', [
+        generate_powerlaw_cluster_graph(10, 200, 0.01, 10)
+        for _ in range(20)
+    ])
+
+    write_test_group('powerlaw-cluster-50-200-0.5', [
+        generate_powerlaw_cluster_graph(50, 200, 0.01, 10)
+        for _ in range(20)
+    ])
+
+    write_test_group('powerlaw-cluster-100-200-0.5', [
+        generate_powerlaw_cluster_graph(100, 200, 0.01, 10)
+        for _ in range(20)
+    ])
+
+
+def run_group_and_print_results(group_name: str, first: str = APPROXIMATE_EXECUTABLE, second: str = NAIVE_EXECUTABLE):
     print(f'=== Running test group {group_name} ===')
-    pprint(run_test_group(group_name))
+    pprint(run_test_group(group_name, first, second))
     print()
 
 
@@ -173,14 +202,18 @@ def run_benchmark_and_print_results(group_name: str):
 
 
 if __name__ == '__main__':
-    # write_test_groups()
-    # print()
+    write_test_groups()
+    print()
 
     run_group_and_print_results('2-cut-small')
     run_group_and_print_results('3-cut-small')
     run_group_and_print_results('4-cut-small')
 
-    run_benchmark_and_print_results('100-vertices')
-    run_benchmark_and_print_results('200-vertices')
-    run_benchmark_and_print_results('400-vertices')
-    run_benchmark_and_print_results('800-vertices')
+    run_group_and_print_results('100-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    run_group_and_print_results('200-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    run_group_and_print_results('400-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+
+    run_group_and_print_results('powerlaw-cluster-5-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    run_group_and_print_results('powerlaw-cluster-10-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    run_group_and_print_results('powerlaw-cluster-50-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    run_group_and_print_results('powerlaw-cluster-100-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)

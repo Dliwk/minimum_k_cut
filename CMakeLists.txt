@@ -4,3 +4,4 @@ project(minimum_k_cut)
 
 add_executable(approximate_algorithm src/approximate_algorithm.cpp)
 add_executable(naive_algorithm src/naive_algorithm.cpp)
+add_executable(greedy_algorithm src/greedy_cut.cpp)
