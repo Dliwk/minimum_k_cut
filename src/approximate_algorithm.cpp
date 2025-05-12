@@ -44,7 +44,7 @@ struct flow_network {
 };
 
 template<class T>
-struct dinic_maximum_flow{
+struct dinic_maximum_flow {
   static constexpr T eps = (T)1e-9, inf = numeric_limits<T>::max();
 
   flow_network<T> &F;
