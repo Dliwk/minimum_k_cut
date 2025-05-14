@@ -12,7 +12,7 @@ APPROXIMATE_EXECUTABLE = 'cmake-build-release/approximate_algorithm'
 NAIVE_EXECUTABLE = 'cmake-build-release/naive_algorithm'
 GREEDY_EXECUTABLE = 'cmake-build-release/greedy_algorithm'
 
-TESTS_DIR = Path(__file__).resolve().parent
+TESTS_DIR = Path(__file__).resolve().parent / 'test-groups'
 
 random.seed(20250514)
 
@@ -113,7 +113,7 @@ def run_benchmark_on_group(name: str) -> Benchmark:
 def write_test_group(name: str, tests: list[Test]) -> None:
     group_dir = TESTS_DIR / name
     shutil.rmtree(group_dir, ignore_errors=True)
-    group_dir.mkdir(exist_ok=True)
+    group_dir.mkdir(exist_ok=True, parents=True)
     for i, test in enumerate(tests):
         with open(group_dir / f'{str(i)}.txt', 'w') as file:
             file.write(str(test))
