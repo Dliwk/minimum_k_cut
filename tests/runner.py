@@ -14,6 +14,8 @@ GREEDY_EXECUTABLE = 'cmake-build-release/greedy_algorithm'
 
 TESTS_DIR = Path(__file__).resolve().parent
 
+random.seed(20250514)
+
 
 @dataclass
 class Test:
@@ -86,7 +88,7 @@ def run_and_compare_algorithms(test: str, first: str, second: str) -> Comparison
     first_result = run_test_on(test, first)
     second_result = run_test_on(test, second)
 
-    ratio = first_result.output / second_result.output if second_result.output != 0 else 1.337
+    ratio = first_result.output / second_result.output if second_result.output != 0 else 0
     return Comparison(ratio, ratio, 1)
 
 
@@ -146,6 +148,11 @@ def write_test_groups():
         generate_random_graph(4, 12, 0.7, 1000),
         generate_random_graph(4, 12, 0.6, 1000),
         generate_random_graph(4, 12, 0.5, 1000),
+    ])
+
+    write_test_group('8-cut-small', [
+        generate_random_graph(4, 12, random.uniform(0.2, 1.0), 1000)
+        for _ in range(400)
     ])
 
     write_test_group('100-vertices', [
@@ -208,6 +215,7 @@ if __name__ == '__main__':
     run_group_and_print_results('2-cut-small')
     run_group_and_print_results('3-cut-small')
     run_group_and_print_results('4-cut-small')
+    run_group_and_print_results('8-cut-small')
 
     run_group_and_print_results('100-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
     run_group_and_print_results('200-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
