@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import shutil
@@ -13,6 +14,7 @@ NAIVE_EXECUTABLE = 'cmake-build-release/naive_algorithm'
 GREEDY_EXECUTABLE = 'cmake-build-release/greedy_algorithm'
 
 TESTS_DIR = Path(__file__).resolve().parent / 'test-groups'
+REPORTS_DIR = Path(__file__).resolve().parent.parent / 'reports'
 
 random.seed(20250514)
 
@@ -71,7 +73,7 @@ def generate_random_graph(k: int, n: int, p: float, max_weight: int) -> Test:
 
 
 def generate_powerlaw_cluster_graph(k: int, n: int, p: float, max_weight: int) -> Test:
-    m = min(n // k * 10, n - 1)
+    m = n - 2
     graph = nx.powerlaw_cluster_graph(n, m, p)
     edges = [(i, j, random.randint(1, max_weight)) for (i, j) in graph.edges]
     return Test(n, m, k, edges)
@@ -88,7 +90,7 @@ def run_and_compare_algorithms(test: str, first: str, second: str) -> Comparison
     first_result = run_test_on(test, first)
     second_result = run_test_on(test, second)
 
-    ratio = first_result.output / second_result.output if second_result.output != 0 else 0
+    ratio = first_result.output / second_result.output if second_result.output != 0 else -1
     return Comparison(ratio, ratio, 1)
 
 
@@ -118,82 +120,44 @@ def write_test_group(name: str, tests: list[Test]) -> None:
         with open(group_dir / f'{str(i)}.txt', 'w') as file:
             file.write(str(test))
 
+def test_erdos_renyi_small(label: str, p: float, tests_count: int, subject: str, correct: str = NAIVE_EXECUTABLE):
+    ratios_avg = []
+    ratios_max = []
+    for k in range(2, 12):
+        ratios_avg.append([])
+        ratios_max.append([])
+        for n in range(k, 12):
+            current_ratios = []
+            for _ in range(tests_count):
+                test = str(generate_random_graph(k, n, p, 1000))
+                result_subject = run_test_on(test, subject)
+                result_correct = run_test_on(test, correct)
+                current_ratios.append(
+                    result_subject.output / result_correct.output if result_correct.output != 0 else 1)
+            ratios_avg[-1].append(sum(current_ratios) / len(current_ratios))
+            ratios_max[-1].append(max(current_ratios))
+    with open(REPORTS_DIR / f'erdos_renyi_small_{label}.json', 'w') as f:
+        f.write(json.dumps({'max': ratios_max, 'avg': ratios_avg}))
 
-def write_test_groups():
-    write_test_group('2-cut-small', [
-        generate_random_graph(2, 2, 1.0, 10),
-        generate_random_graph(2, 3, 1.0, 10),
-        generate_random_graph(2, 5, 1.0, 100),
-        generate_random_graph(2, 7, 1.0, 100),
-        generate_random_graph(2, 8, 1.0, 1000),
-        generate_random_graph(2, 10, 1.0, 1000),
-        generate_random_graph(2, 12, 1.0, 1000),
-    ])
 
-    write_test_group('3-cut-small', [
-        generate_random_graph(3, 3, 1.0, 1000),
-        generate_random_graph(3, 12, 1.0, 1000),
-        generate_random_graph(3, 12, 0.9, 1000),
-        generate_random_graph(3, 12, 0.8, 1000),
-        generate_random_graph(3, 12, 0.7, 1000),
-        generate_random_graph(3, 12, 0.6, 1000),
-        generate_random_graph(3, 12, 0.5, 1000),
-    ])
-
-    write_test_group('4-cut-small', [
-        generate_random_graph(4, 4, 1.0, 1000),
-        generate_random_graph(4, 12, 1.0, 1000),
-        generate_random_graph(4, 12, 0.9, 1000),
-        generate_random_graph(4, 12, 0.8, 1000),
-        generate_random_graph(4, 12, 0.7, 1000),
-        generate_random_graph(4, 12, 0.6, 1000),
-        generate_random_graph(4, 12, 0.5, 1000),
-    ])
-
-    write_test_group('8-cut-small', [
-        generate_random_graph(4, 12, random.uniform(0.2, 1.0), 1000)
-        for _ in range(400)
-    ])
-
-    write_test_group('100-vertices', [
-        generate_random_graph(random.randint(2, 90), 100, random.uniform(0.2, 0.8), 1000)
-        for _ in range(400)
-    ])
-
-    write_test_group('200-vertices', [
-        generate_random_graph(random.randint(2, 190), 200, random.uniform(0.2, 0.8), 1000)
-        for _ in range(200)
-    ])
-
-    write_test_group('400-vertices', [
-        generate_random_graph(random.randint(2, 390), 400, random.uniform(0.2, 0.8), 1000)
-        for _ in range(100)
-    ])
-
-    write_test_group('800-vertices', [
-        generate_random_graph(random.randint(2, 790), 800, random.uniform(0.2, 0.8), 1000)
-        for _ in range(20)
-    ])
-
-    write_test_group('powerlaw-cluster-5-200-0.5', [
-        generate_powerlaw_cluster_graph(5, 200, 0.01, 10)
-        for _ in range(20)
-    ])
-
-    write_test_group('powerlaw-cluster-10-200-0.5', [
-        generate_powerlaw_cluster_graph(10, 200, 0.01, 10)
-        for _ in range(20)
-    ])
-
-    write_test_group('powerlaw-cluster-50-200-0.5', [
-        generate_powerlaw_cluster_graph(50, 200, 0.01, 10)
-        for _ in range(20)
-    ])
-
-    write_test_group('powerlaw-cluster-100-200-0.5', [
-        generate_powerlaw_cluster_graph(100, 200, 0.01, 10)
-        for _ in range(20)
-    ])
+def test_erdos_renyi_big(label: str, p: float, tests_count: int, subject: str, correct: str = NAIVE_EXECUTABLE):
+    ratios_avg = []
+    ratios_max = []
+    for k in range(3, 13):
+        ratios_avg.append([])
+        ratios_max.append([])
+        for n in range(50, 400, 50):
+            current_ratios = []
+            for _ in range(tests_count):
+                test = str(generate_random_graph(k, n, p, 1000))
+                result_subject = run_test_on(test, subject)
+                result_correct = run_test_on(test, correct)
+                current_ratios.append(
+                    result_subject.output / result_correct.output if result_correct.output != 0 else 1)
+            ratios_avg[-1].append(sum(current_ratios) / len(current_ratios))
+            ratios_max[-1].append(max(current_ratios))
+    with open(REPORTS_DIR / f'erdos_renyi_big_{label}.json', 'w') as f:
+        f.write(json.dumps({'max': ratios_max, 'avg': ratios_avg}))
 
 
 def run_group_and_print_results(group_name: str, first: str = APPROXIMATE_EXECUTABLE, second: str = NAIVE_EXECUTABLE):
@@ -209,19 +173,10 @@ def run_benchmark_and_print_results(group_name: str):
 
 
 if __name__ == '__main__':
-    write_test_groups()
-    print()
+    test_erdos_renyi_small('0.2-500', 0.2, 200, APPROXIMATE_EXECUTABLE)
+    test_erdos_renyi_small('0.5-500', 0.5, 200, APPROXIMATE_EXECUTABLE)
+    test_erdos_renyi_small('0.9-500', 0.9, 200, APPROXIMATE_EXECUTABLE)
 
-    run_group_and_print_results('2-cut-small')
-    run_group_and_print_results('3-cut-small')
-    run_group_and_print_results('4-cut-small')
-    run_group_and_print_results('8-cut-small')
-
-    run_group_and_print_results('100-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-    run_group_and_print_results('200-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-    run_group_and_print_results('400-vertices', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-
-    run_group_and_print_results('powerlaw-cluster-5-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-    run_group_and_print_results('powerlaw-cluster-10-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-    run_group_and_print_results('powerlaw-cluster-50-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
-    run_group_and_print_results('powerlaw-cluster-100-200-0.5', GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    test_erdos_renyi_big('0.2', 0.2, 5, GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    test_erdos_renyi_big('0.5', 0.5, 5, GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
+    test_erdos_renyi_big('0.9', 0.9, 5, GREEDY_EXECUTABLE, APPROXIMATE_EXECUTABLE)
