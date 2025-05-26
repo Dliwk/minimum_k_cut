@@ -1,14 +1,13 @@
-#include <iostream>
-#include <vector>
-#include <functional>
 #include <algorithm>
+#include <cassert>
+#include <functional>
+#include <iostream>
 #include <limits>
 #include <tuple>
-#include <cassert>
+#include <vector>
 using namespace std;
 
-template<class T>
-struct flow_network {
+template <class T> struct flow_network {
   int n;
   vector<vector<int>> adj;
 
@@ -21,10 +20,11 @@ struct flow_network {
 
   T flow = 0;
 
-  flow_network(int n): n(n), adj(n) {}
+  flow_network(int n) : n(n), adj(n) {}
 
   void clear_flow() {
-    for (auto &e: edge) e.flow = 0;
+    for (auto &e : edge)
+      e.flow = 0;
     flow = 0;
   }
 
@@ -49,7 +49,7 @@ struct dinic_maximum_flow {
 
   flow_network<T> &F;
 
-  dinic_maximum_flow(flow_network<T> &F): F(F), ptr(F.n), level(F.n), q(F.n) {}
+  dinic_maximum_flow(flow_network<T> &F) : F(F), ptr(F.n), level(F.n), q(F.n) {}
 
   vector<int> ptr, level, q;
 
@@ -65,7 +65,8 @@ struct dinic_maximum_flow {
         auto &re = F.edge[ind ^ 1];
         if (re.capacity - re.flow > eps && level[e.to] == -1) {
           level[e.to] = level[i] + 1;
-          if (e.to == source) return true;
+          if (e.to == source)
+            return true;
           q[end++] = e.to;
         }
       }
@@ -74,7 +75,8 @@ struct dinic_maximum_flow {
   }
 
   T dfs(int u, T w, int sink) {
-    if (u == sink) return w;
+    if (u == sink)
+      return w;
     int &j = ptr[u];
     while (j >= 0) {
       int ind = F.adj[u][j];
@@ -99,10 +101,12 @@ struct dinic_maximum_flow {
       T sum = 0;
       while (true) {
         T add = dfs(source, inf, sink);
-        if (add <= eps) break;
+        if (add <= eps)
+          break;
         sum += add;
       }
-      if (sum <= eps) break;
+      if (sum <= eps)
+        break;
       F.flow += sum;
     }
     return F.flow;
@@ -118,10 +122,12 @@ struct dinic_maximum_flow {
   }
 };
 
-template<class T>
-vector<tuple<int, int, T>> gomory_hu_tree(int n, const vector<tuple<int, int, T>> &edge) {
+template <class T>
+vector<tuple<int, int, T>>
+gomory_hu_tree(int n, const vector<tuple<int, int, T>> &edge) {
   flow_network<T> F(n);
-  for (auto &[u, v, w]: edge) F.insert(u, v, w, w);
+  for (auto &[u, v, w] : edge)
+    F.insert(u, v, w, w);
 
   vector<tuple<int, int, T>> res(max(n - 1, 0));
   vector<int> pv(n), cut(n);
@@ -130,9 +136,11 @@ vector<tuple<int, int, T>> gomory_hu_tree(int n, const vector<tuple<int, int, T>
     F.clear_flow();
     auto [flow, left, right] = dinic_maximum_flow<T>(F).minimum_cut(pv[i], i);
     fill(cut.begin(), cut.end(), 0);
-    for (auto u : right) cut[u] = 1;
+    for (auto u : right)
+      cut[u] = 1;
     for (auto j = i + 1; j < n; ++j) {
-      if (cut[j] == cut[i] && pv[j] == pv[i]) pv[j] = i;
+      if (cut[j] == cut[i] && pv[j] == pv[i])
+        pv[j] = i;
     }
     res[i - 1] = {pv[i], i, flow};
   }
@@ -145,16 +153,14 @@ int main() {
   int n, m, k;
   cin >> n >> m >> k;
   vector<tuple<int, int, long long>> edges(m);
-  for (auto& [u, v, w] : edges) {
+  for (auto &[u, v, w] : edges) {
     cin >> u >> v >> w;
     --u, --v;
   }
 
   auto tree_edges = gomory_hu_tree(n, edges);
   sort(tree_edges.begin(), tree_edges.end(),
-       [](auto lhs, auto rhs) {
-    return get<2>(lhs) < get<2>(rhs);
-  });
+       [](auto lhs, auto rhs) { return get<2>(lhs) < get<2>(rhs); });
 
   vector<vector<int>> graph(n);
   for (int i = k - 1; i < tree_edges.size(); ++i) {
