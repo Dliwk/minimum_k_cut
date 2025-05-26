@@ -80,4 +80,5 @@ int main() {
   }
 
   std::cout << mincut << '\n';
+  
 }
